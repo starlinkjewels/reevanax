@@ -187,11 +187,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon", sizes: "48x48" },
-      // iOS does not reliably rasterize SVG for apple-touch-icon (unlike the
-      // regular favicon above) — it wants a real PNG, ideally 180x180. Until
-      // a proper PNG is added, this SVG is at least a functional fallback,
-      // but the home-screen icon may not render as crisply as it should.
-      { rel: "apple-touch-icon", href: "/favicon.svg" },
+      // A real 180x180 PNG, not an SVG fallback — iOS does not reliably
+      // rasterize SVG for the home-screen icon.
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
