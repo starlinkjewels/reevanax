@@ -138,7 +138,6 @@ export function ThermalReceipt({
       {balance > 0.009 && row("Balance Due", fmtMoney(balance), true)}
       {row("Mode", fmtMode(inv.paymentMode))}
 
-      <div style={dashed} />
 
 
       {/* Cashback footer — customer-facing, only when the referral program
@@ -165,6 +164,8 @@ export function ThermalReceipt({
           </div>
         </>
       )}
+      <div style={dashed} />
+
       <div style={{ textAlign: "center" }}>
         <div style={{ fontWeight: 700 }}>Thank you! Visit again 🙏</div>
         <div style={{ fontSize: width === 80 ? 10 : 9 }}>
