@@ -110,13 +110,18 @@ export interface Invoice {
    * exactly like `bankPaidAmount`, so an edit or delete can reverse precisely
    * this amount from both wallets without re-deriving it from the ledger. */
   referralCommission?: number;
+  /** Snapshot of how much of the party's referral wallet this sale deducted
+   * as a bill discount — same reversal-on-edit/delete pattern as
+   * `referralCommission`. */
+  redeemedCashback?: number;
   notes?: string;
   createdAt: string;
 }
 
-/** Who a referral commission entry credits — the referred party (buyer on
- * this bill) or the party who referred them. */
-export type ReferralRole = "referrer" | "referee";
+/** Who a referral ledger entry credits — the referred party (buyer on this
+ * bill), the party who referred them, or a party spending their own
+ * previously-earned balance (no counterparty). */
+export type ReferralRole = "referrer" | "referee" | "redemption";
 
 /** One audit-trail row per party credited by a sale's referral commission.
  * Purely a record — the actual payable balance lives on

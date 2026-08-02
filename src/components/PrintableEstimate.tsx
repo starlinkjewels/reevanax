@@ -1,5 +1,6 @@
 import type { Invoice, Company } from "@/types";
 import { fmtMode } from "@/components/ModePills";
+import { PartyRepo } from "@/repositories";
 
 /**
  * The shop's own bill layout (the printed format the client supplied), used by
@@ -533,6 +534,28 @@ export function PrintableEstimate({
           </tr>
         </tbody>
       </table>
+
+      {/* Cashback footer — customer-facing, only when the referral program
+          is actually running (see Settings). The party's live balance
+          already reflects THIS bill's own accrual/redemption, since this
+          renders after the save that produced it. */}
+      {isSale && company.referralEnabled && (
+        <div style={{ marginTop: 6, fontSize: 8.5, borderTop: "1px dashed #000", paddingTop: 4 }}>
+          <div style={{ fontWeight: 700 }}>
+            Your Cashback Balance Available: ₹{money(PartyRepo.get(inv.partyId)?.referralWalletBalance ?? 0)}
+          </div>
+          {!!inv.redeemedCashback && <div>Cashback redeemed on this bill: ₹{money(inv.redeemedCashback)}</div>}
+          <div>
+            Note: Pending balances will be added based on program terms. For more details contact
+            store manager.
+          </div>
+          <div>
+            When you refer a friend, you get {company.referralPercent ?? 10}% and your friend gets{" "}
+            {company.referralPercent ?? 10}% cashback on their next service.
+          </div>
+          <div>Disc: Discount, CB: Cashback</div>
+        </div>
+      )}
     </div>
   );
 }

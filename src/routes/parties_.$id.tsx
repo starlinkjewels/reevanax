@@ -9,6 +9,7 @@ import {
   PaymentRepo,
   CompanyRepo,
   AppointmentRepo,
+  ReferralLedgerRepo,
 } from "@/repositories";
 import { buildPartyStatement, type PartyStatementRow } from "@/lib/ledger";
 import { fmtMoney, fmtDate, fmtTime, fmtSince } from "@/lib/format";
@@ -39,6 +40,7 @@ import {
   MessageCircle,
   Calendar,
   CalendarClock,
+  Gift,
   X,
   Loader2,
   type LucideIcon,
@@ -155,6 +157,40 @@ function PartyStatementPage() {
       };
     });
   }, [rows]);
+
+  // Who referred this party in (if anyone) — the other half of the referral
+  // link lives on the referrer's own document, not this one.
+  const referredByParty = useMemo(
+    () => (party?.referredBy ? (PartyRepo.get(party.referredBy) ?? null) : null),
+    [party, _repoV],
+  );
+
+  // The reverse direction — every party THIS one referred in, plus exactly
+  // how much of the wallet balance came from each, broken down from the
+  // ledger audit trail rather than just the lump `referralWalletBalance`
+  // sum, so "how many, and whose" is actually answerable on this page.
+  const referralNetwork = useMemo(() => {
+    if (!party) return { referred: [] as { party: Party; earned: number }[], earnedAsReferrer: 0, earnedAsReferee: 0 };
+    const ledger = ReferralLedgerRepo.all().filter((e) => e.partyId === party.id);
+    const earnedAsReferrer = r2(
+      ledger.filter((e) => e.role === "referrer").reduce((s, e) => s + e.commission, 0),
+    );
+    const earnedAsReferee = r2(
+      ledger.filter((e) => e.role === "referee").reduce((s, e) => s + e.commission, 0),
+    );
+    const referred = PartyRepo.all()
+      .filter((p) => p.referredBy === party.id)
+      .map((p) => ({
+        party: p,
+        earned: r2(
+          ledger
+            .filter((e) => e.role === "referrer" && e.counterpartyId === p.id)
+            .reduce((s, e) => s + e.commission, 0),
+        ),
+      }))
+      .sort((a, b) => b.earned - a.earned);
+    return { referred, earnedAsReferrer, earnedAsReferee };
+  }, [party, _repoV]);
 
   // This party's still-pending (booked) appointments, soonest first — the
   // client-wise view of the same reminder feature the Appointments page
@@ -447,6 +483,75 @@ function PartyStatementPage() {
             tone={balance > 0 ? "rose" : balance < 0 ? "amber" : "emerald"}
           />
         </div>
+
+        {/* Referral Network — who referred this party in, who this party has
+            referred, and exactly how much bonus came from each, so "how many
+            referrals, and whose" is answerable at a glance on this page. */}
+        {(referredByParty ||
+          referralNetwork.referred.length > 0 ||
+          (party.referralWalletBalance ?? 0) > 0) && (
+          <div className="rounded-lg border border-gray-100 bg-white px-3.5 py-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1.5 mb-1.5">
+              <Gift className="h-3.5 w-3.5" /> Referral Network
+            </p>
+            {!CompanyRepo.get().referralEnabled && (
+              <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
+                Referral commission is currently OFF — new sales won't add to these balances until
+                it's turned on in Settings.
+              </p>
+            )}
+            <div className="space-y-1.5 text-[12px]">
+              {referredByParty && (
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Referred by</span>
+                  <button
+                    onClick={() =>
+                      navigate({ to: "/parties/$id", params: { id: referredByParty.id } })
+                    }
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {referredByParty.name}
+                  </button>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Referral wallet balance</span>
+                <span className="font-bold text-gray-800 tabular-nums">
+                  {fmtMoney(party.referralWalletBalance ?? 0)}
+                </span>
+              </div>
+              {(referralNetwork.earnedAsReferrer > 0 || referralNetwork.earnedAsReferee > 0) && (
+                <div className="flex flex-wrap items-center gap-x-3 text-[11px] text-gray-400">
+                  <span>From referring others: {fmtMoney(referralNetwork.earnedAsReferrer)}</span>
+                  <span>As a referred customer: {fmtMoney(referralNetwork.earnedAsReferee)}</span>
+                </div>
+              )}
+              {referralNetwork.referred.length > 0 && (
+                <div className="pt-1.5 mt-1 border-t border-gray-50">
+                  <p className="text-gray-500 mb-1">
+                    Referred {referralNetwork.referred.length} client
+                    {referralNetwork.referred.length > 1 ? "s" : ""}
+                  </p>
+                  <div className="space-y-1">
+                    {referralNetwork.referred.map(({ party: p, earned }) => (
+                      <div key={p.id} className="flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => navigate({ to: "/parties/$id", params: { id: p.id } })}
+                          className="text-gray-700 hover:text-primary hover:underline truncate text-left"
+                        >
+                          {p.name}
+                        </button>
+                        <span className="text-gray-400 tabular-nums shrink-0">
+                          {earned > 0 ? `${fmtMoney(earned)} earned` : "No bills yet"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Upcoming Appointments — client-wise pending-reminder view;
             the Appointments page shows the same data centrally. */}

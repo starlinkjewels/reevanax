@@ -192,6 +192,11 @@ function SalesPage() {
         PartyRepo.adjustFieldBatched(batch, referrerId, "referralWalletBalance", -live.referralCommission);
       }
     }
+    // Credit back whatever cashback this sale redeemed — the party never
+    // actually got to keep that value once the bill is undone.
+    if (live.redeemedCashback) {
+      PartyRepo.adjustFieldBatched(batch, live.partyId, "referralWalletBalance", live.redeemedCashback);
+    }
     SalesRepo.removeBatched(batch, live.id);
     commitBatch(batch, "delete sale");
     refresh();

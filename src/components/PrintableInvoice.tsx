@@ -1,6 +1,7 @@
 import type { Invoice, Company } from "@/types";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { fmtMode } from "@/components/ModePills";
+import { PartyRepo } from "@/repositories";
 
 interface Props {
   inv: Invoice;
@@ -448,6 +449,28 @@ export function PrintableInvoice({
           </tr>
         </tbody>
       </table>
+
+      {/* Cashback footer — customer-facing, only when the referral program
+          is actually running (see Settings). The party's live balance
+          already reflects THIS bill's own accrual/redemption, since this
+          renders after the save that produced it. */}
+      {isSale && company.referralEnabled && (
+        <div style={{ marginTop: s(14), fontSize: s(9), borderTop: "1px dashed #000", paddingTop: s(6) }}>
+          <div style={{ fontWeight: 700 }}>
+            Your Cashback Balance Available: {fmtMoney(PartyRepo.get(inv.partyId)?.referralWalletBalance ?? 0)}
+          </div>
+          {!!inv.redeemedCashback && <div>Cashback redeemed on this bill: {fmtMoney(inv.redeemedCashback)}</div>}
+          <div>
+            Note: Pending balances will be added based on program terms. For more details contact
+            store manager.
+          </div>
+          <div>
+            When you refer a friend, you get {company.referralPercent ?? 10}% and your friend gets{" "}
+            {company.referralPercent ?? 10}% cashback on their next service.
+          </div>
+          <div>Disc: Discount, CB: Cashback</div>
+        </div>
+      )}
     </div>
   );
 }

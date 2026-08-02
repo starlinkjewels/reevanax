@@ -204,18 +204,35 @@ export function InvoiceForm({ mode, existing }: Props) {
   // moment to preview it for that path). Internal-only figure, purely
   // informational — never folded into inv.total.
   const referralPreview = useMemo(() => {
-    if (!isSale || !company.referralEnabled || !inv.partyId) return null;
+    if (!isSale || !inv.partyId) return null;
     const referrerId = PartyRepo.get(inv.partyId)?.referredBy;
     if (!referrerId || referrerId === inv.partyId) return null;
     const referrer = PartyRepo.get(referrerId);
     if (!referrer || referrer.archived) return null;
+    // Still surfaced when the program is off — silently hiding this would
+    // look like the referral link itself is broken rather than a Settings
+    // toggle waiting to be flipped on.
+    if (!company.referralEnabled) return { referrerName: referrer.name, commission: 0, disabled: true };
     const commission = computeReferralCommission(
       inv.total,
       company.referralPercent ?? 10,
       company.referralMaxPerBill ?? 500,
     );
-    return { referrerName: referrer.name, commission };
+    return { referrerName: referrer.name, commission, disabled: false };
   }, [isSale, company.referralEnabled, company.referralPercent, company.referralMaxPerBill, inv.partyId, inv.total]);
+
+  // How much of THIS party's wallet this bill can draw on. Redemption stays
+  // spendable even if the program is currently off (that only gates NEW
+  // accrual) — it's their own already-earned balance. Adds back what this
+  // exact bill previously redeemed (on edit) since the party's live balance
+  // already reflects that past deduction — otherwise re-opening an edited
+  // bill would show a shrinking "available" figure across repeated saves.
+  const cashbackAvailable = useMemo(() => {
+    if (!isSale || !inv.partyId) return 0;
+    const liveBalance = PartyRepo.get(inv.partyId)?.referralWalletBalance ?? 0;
+    const ownPriorRedemption = existing?.partyId === inv.partyId ? (existing?.redeemedCashback ?? 0) : 0;
+    return r2(liveBalance + ownPriorRedemption);
+  }, [isSale, inv.partyId, existing]);
 
   const partySuggests = useMemo(() => {
     const q = partyQ.trim().toLowerCase();
@@ -243,6 +260,7 @@ export function InvoiceForm({ mode, existing }: Props) {
     discount = inv.discount,
     gst = gstOn,
     shipping = inv.shippingCharge ?? 0,
+    redeemedCashback = inv.redeemedCashback ?? 0,
   ) => {
     const subtotal = r2(lines.reduce((s, l) => s + l.qty * l.price, 0));
     const afterLineDisc = r2(
@@ -256,7 +274,7 @@ export function InvoiceForm({ mode, existing }: Props) {
           ),
         )
       : 0;
-    const rawTotal = Math.max(0, r2(afterLineDisc + taxAmount - discount + shipping));
+    const rawTotal = Math.max(0, r2(afterLineDisc + taxAmount - discount - redeemedCashback + shipping));
     // Indian billing convention: round to the nearest whole rupee
     const total = roundEnabled ? Math.round(rawTotal) : rawTotal;
     const roundOff = r2(total - rawTotal);
@@ -483,6 +501,22 @@ export function InvoiceForm({ mode, existing }: Props) {
       ...recalc(inv.lineItems, inv.discount, gstOn, s),
     });
 
+  // Mirrors setDiscount's own leniency — only floors at zero here, same as
+  // Extra Discount tolerates a value bigger than the subtotal (recalc's own
+  // Math.max(0, …) just floors the total). The hard caps that actually
+  // matter (can't exceed the wallet, can't exceed the bill) are enforced
+  // once, at save time, in save() — this field debits a real balance unlike
+  // Extra Discount, so those checks can't be skipped the way a keystroke cap
+  // could be.
+  const setRedeemedCashback = (v: number) => {
+    const redeemedCashback = Math.max(0, v);
+    setInv({
+      ...inv,
+      redeemedCashback,
+      ...recalc(inv.lineItems, inv.discount, gstOn, inv.shippingCharge ?? 0, redeemedCashback),
+    });
+  };
+
   const toggleGst = () => {
     const newGst = !gstOn;
     const lines = inv.lineItems.map((l) => {
@@ -687,6 +721,35 @@ export function InvoiceForm({ mode, existing }: Props) {
       }
     }
 
+    // ── Cashback redemption (Sales only) ───────────────────────────
+    // Already validated in save() against both the live wallet balance and
+    // the bill's own value — this just applies it, atomically with
+    // everything else in this batch. Reversal-then-reapply, same shape as
+    // the referral commission block right below.
+    if (isSale) {
+      if (existing?.redeemedCashback) {
+        PartyRepo.adjustFieldBatched(
+          batch,
+          existing.partyId,
+          "referralWalletBalance",
+          existing.redeemedCashback,
+        );
+      }
+      if (finalInv.redeemedCashback) {
+        PartyRepo.adjustFieldBatched(batch, partyId, "referralWalletBalance", -finalInv.redeemedCashback);
+        ReferralLedgerRepo.addBatched(batch, {
+          partyId,
+          role: "redemption",
+          invoiceId,
+          invoiceNumber: finalInv.number,
+          counterpartyId: partyId,
+          counterpartyName: partyName,
+          billAmount: finalInv.total,
+          commission: -finalInv.redeemedCashback,
+        });
+      }
+    }
+
     // ── Referral commission (Sales only) ──────────────────────────
     // Both the party on this bill AND whoever referred them earn a cut —
     // credited straight to each party's referral wallet, atomically with
@@ -888,6 +951,30 @@ export function InvoiceForm({ mode, existing }: Props) {
     if (paid > inv.total) {
       paid = inv.total;
       toast.info(`Paid amount adjusted to bill total ${fmtMoney(inv.total)}`);
+    }
+
+    // Redeemed cashback debits a real wallet balance — unlike Extra
+    // Discount, it must be hard-blocked (not silently clamped) if it would
+    // overdraw the wallet or redeem more value than the bill is actually
+    // worth, or the wallet would end up wrong with no visible sign of it.
+    if (isSale && (inv.redeemedCashback ?? 0) > 0) {
+      if (inv.redeemedCashback! > cashbackAvailable + 0.01) {
+        toast.error(
+          `Only ${fmtMoney(cashbackAvailable)} cashback available for ${inv.partyName || "this party"} — reduce the redeemed amount.`,
+        );
+        return;
+      }
+      const billableBeforeRedemption = recalc(
+        inv.lineItems,
+        inv.discount,
+        gstOn,
+        inv.shippingCharge ?? 0,
+        0,
+      ).total;
+      if (inv.redeemedCashback! > billableBeforeRedemption + 0.01) {
+        toast.error(`Redeemed cashback can't exceed the bill amount (${fmtMoney(billableBeforeRedemption)})`);
+        return;
+      }
     }
 
     const partyId = inv.partyId;
@@ -1437,13 +1524,34 @@ export function InvoiceForm({ mode, existing }: Props) {
                   />
                 </div>
               )}
+              {isSale && cashbackAvailable > 0 && (
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-muted-foreground">
+                    Redeem Cashback{" "}
+                    <span className="text-[11px]">(Available: {fmtMoney(cashbackAvailable)})</span>
+                  </span>
+                  <NumInput
+                    value={inv.redeemedCashback ?? 0}
+                    onValue={(n) => setRedeemedCashback(n)}
+                    className="w-28 h-8 px-2 text-right border rounded-md bg-background focus:border-primary focus:ring-2 focus:ring-ring/20 outline-none tabular-nums"
+                  />
+                </div>
+              )}
               {!!inv.roundOff && Math.abs(inv.roundOff) > 0.001 && (
                 <Row
                   label="Round Off"
                   value={`${inv.roundOff > 0 ? "+" : "−"}${fmtMoney(Math.abs(inv.roundOff))}`}
                 />
               )}
-              {referralPreview && (
+              {referralPreview && referralPreview.disabled && (
+                <div className="flex justify-between items-center gap-2 -mx-4 px-4 py-2 bg-amber-50 text-[12px] text-amber-700">
+                  <span>
+                    {inv.partyName || "This party"} is linked to referrer {referralPreview.referrerName}, but
+                    referral commission is OFF in Settings — no bonus will be earned on this bill.
+                  </span>
+                </div>
+              )}
+              {referralPreview && !referralPreview.disabled && (
                 <div className="flex justify-between items-center gap-2 -mx-4 px-4 py-2 bg-accent/40 text-[12px]">
                   <span className="text-muted-foreground">
                     Referral bonus (internal, not printed) — {inv.partyName || "this party"} &{" "}

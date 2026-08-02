@@ -1,6 +1,7 @@
 import type { Invoice, Company } from "@/types";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { fmtMode } from "@/components/ModePills";
+import { PartyRepo } from "@/repositories";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -117,6 +118,7 @@ export function ThermalReceipt({
       {inv.discount > 0 && row("Discount", `-${fmtMoney(inv.discount)}`)}
       {gstOn && inv.taxAmount > 0 && row("GST", fmtMoney(inv.taxAmount))}
       {!!inv.shippingCharge && inv.shippingCharge > 0 && row("Shipping", fmtMoney(inv.shippingCharge))}
+      {!!inv.redeemedCashback && inv.redeemedCashback > 0 && row("CB Redeemed", `-${fmtMoney(inv.redeemedCashback)}`)}
       {!!inv.roundOff &&
         Math.abs(inv.roundOff) > 0.001 &&
         row("Round Off", `${inv.roundOff > 0 ? "+" : "−"}${fmtMoney(Math.abs(inv.roundOff))}`)}
@@ -143,6 +145,31 @@ export function ThermalReceipt({
           Goods once sold will not be taken back
         </div>
       </div>
+
+      {/* Cashback footer — customer-facing, only when the referral program
+          is actually running (see Settings). The party's live balance
+          already reflects THIS bill's own accrual/redemption, since this
+          renders after the save that produced it. ThermalReceipt is
+          sale-only (no purchase caller), so no isSale gate is needed here. */}
+      {company.referralEnabled && (
+        <>
+          <div style={dashed} />
+          <div style={{ fontSize: width === 80 ? 9 : 8 }}>
+            <div style={{ fontWeight: 700 }}>
+              Cashback Balance Available: {fmtMoney(PartyRepo.get(inv.partyId)?.referralWalletBalance ?? 0)}
+            </div>
+            <div>
+              Note: Pending balances will be added based on program terms. For more details contact
+              store manager.
+            </div>
+            <div>
+              Refer a friend: you get {company.referralPercent ?? 10}% and your friend gets{" "}
+              {company.referralPercent ?? 10}% cashback on their next service.
+            </div>
+            <div>Disc: Discount, CB: Cashback</div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
