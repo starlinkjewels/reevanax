@@ -14,6 +14,7 @@ import {
   FileText,
   Settings,
   Boxes,
+  CalendarClock,
   ChevronsLeft,
   ChevronsRight,
   CornerDownLeft,
@@ -57,6 +58,11 @@ const groups: NavGroup[] = [
       { path: "/items", label: "Items", icon: Package, key: "3" },
       { path: "/inventory", label: "Inventory", icon: Boxes },
     ],
+  },
+  {
+    title: "Appointments",
+    module: "appointments",
+    items: [{ path: "/appointments", label: "Appointments", icon: CalendarClock }],
   },
   {
     title: "Sales",
@@ -171,7 +177,7 @@ export function Sidebar() {
           className="bg-sidebar border-b border-sidebar-border shrink-0"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="h-14 flex items-center px-3">
+          <div className="h-14 flex items-center justify-center px-3">
             {collapsed ? (
               <img src="/logo-mark.png" alt="ReevanaX" className="h-8 w-8 object-contain shrink-0" />
             ) : (

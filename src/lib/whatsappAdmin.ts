@@ -101,3 +101,34 @@ export const sendWhatsAppMessageServerFn = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+type SendTextInput = { callerIdToken: string; phone: string; message: string };
+
+/** Plain text send (no PDF) — for short nudges like appointment reminders,
+ * where generating a throwaway document just to satisfy
+ * sendWhatsAppMessageServerFn's contract would be wasteful. */
+export const sendWhatsAppTextServerFn = createServerFn({ method: "POST" })
+  .validator((data: unknown): SendTextInput => {
+    const d = data as Partial<SendTextInput>;
+    if (!d?.callerIdToken) throw new Error("Not authenticated");
+    if (!d.phone?.trim()) throw new Error("This party has no phone number saved");
+    if (!d.message?.trim()) throw new Error("Message is required");
+    return { callerIdToken: d.callerIdToken, phone: d.phone.trim(), message: d.message.trim() };
+  })
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    await requireActiveUser(data.callerIdToken);
+    const { url, key } = serviceConfig();
+    const res = await fetch(`${url}/send`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": key },
+      body: JSON.stringify({
+        phone: toInternational(data.phone),
+        message: data.message,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error || "Could not send WhatsApp message");
+    }
+    return { ok: true };
+  });

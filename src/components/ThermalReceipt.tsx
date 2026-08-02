@@ -73,7 +73,7 @@ export function ThermalReceipt({
         <img
           src="/logo-mark.png"
           alt=""
-          style={{ height: width === 80 ? 26 : 20, marginBottom: 2 }}
+          style={{ display: "block", margin: "0 auto 2px", height: width === 80 ? 26 : 20 }}
         />
         <div style={{ fontSize: width === 80 ? 16 : 13, fontWeight: 800 }}>{company.name}</div>
         {company.address && <div>{company.address}</div>}

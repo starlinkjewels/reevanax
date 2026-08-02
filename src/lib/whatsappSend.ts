@@ -1,6 +1,6 @@
 import { auth } from "@/lib/firebase";
 import { elementToPdfBase64 } from "@/lib/pdf";
-import { sendWhatsAppMessageServerFn } from "@/lib/whatsappAdmin";
+import { sendWhatsAppMessageServerFn, sendWhatsAppTextServerFn } from "@/lib/whatsappAdmin";
 
 /** Renders a printable DOM node to PDF and sends it as a WhatsApp document
  * to the given phone number — the shared "Send WhatsApp" action used by
@@ -33,4 +33,19 @@ export async function sendElementViaWhatsApp(opts: {
       fileName: opts.fileName.toLowerCase().endsWith(".pdf") ? opts.fileName : `${opts.fileName}.pdf`,
     },
   });
+}
+
+/** Plain text WhatsApp send (no document) — e.g. appointment reminders.
+ * Same phone/auth guards as sendElementViaWhatsApp, minus the PDF step. */
+export async function sendTextViaWhatsApp(opts: {
+  phone: string | undefined;
+  message: string;
+}): Promise<void> {
+  const phone = opts.phone?.trim();
+  if (!phone) {
+    throw new Error("This party has no phone number saved — add one to send via WhatsApp.");
+  }
+  const callerIdToken = await auth.currentUser?.getIdToken();
+  if (!callerIdToken) throw new Error("Not signed in");
+  await sendWhatsAppTextServerFn({ data: { callerIdToken, phone, message: opts.message } });
 }

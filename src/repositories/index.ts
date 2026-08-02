@@ -19,6 +19,7 @@ import type {
   TeamUser,
   ModuleKey,
   ReferralLedgerEntry,
+  Appointment,
 } from "@/types";
 
 export const PartyRepo = new Repository<Party>("parties");
@@ -35,6 +36,7 @@ export const PaymentRepo = new Repository<Payment>("payments");
 export const StockAdjustmentRepo = new Repository<StockAdjustment>("stock-adjustments");
 export const CashAdjustmentRepo = new Repository<CashAdjustment>("cash-adjustments");
 export const ReferralLedgerRepo = new Repository<ReferralLedgerEntry>("referral-ledger");
+export const AppointmentRepo = new Repository<Appointment>("appointments");
 
 const defaultCompany: Company = {
   name: "My Company",
@@ -282,6 +284,7 @@ export const REPO_BY_KEY: Record<string, Repository<{ id: string }>> = {
   "bz.stock-adjustments": StockAdjustmentRepo as Repository<{ id: string }>,
   "bz.cash-adjustments": CashAdjustmentRepo as Repository<{ id: string }>,
   "bz.referral-ledger": ReferralLedgerRepo as Repository<{ id: string }>,
+  "bz.appointments": AppointmentRepo as Repository<{ id: string }>,
 };
 
 const ALL_REPOS = Object.values(REPO_BY_KEY);
@@ -299,6 +302,7 @@ const MODULE_REPOS: Record<ModuleKey, Repository<{ id: string }>[]> = {
   }>[],
   cashBank: [BankRepo, BankTxnRepo, PaymentRepo, CashAdjustmentRepo] as Repository<{ id: string }>[],
   reports: [],
+  appointments: [AppointmentRepo] as Repository<{ id: string }>[],
 };
 
 /**

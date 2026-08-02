@@ -80,6 +80,13 @@ service cloud.firestore {
       allow delete: if hasPerm('masterData', 'delete');
     }
 
+    // ---- Appointments ----
+    match /appointments/{id} {
+      allow read: if hasPerm('appointments', 'view');
+      allow create, update: if hasPerm('appointments', 'edit');
+      allow delete: if hasPerm('appointments', 'delete');
+    }
+
     // ---- Sales, Sale Return ----
     match /sales/{id} {
       allow read: if hasPerm('sales', 'view');

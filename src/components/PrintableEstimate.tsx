@@ -90,7 +90,9 @@ export function PrintableEstimate({
   const isSale = mode === "sale";
   // Identical wording to the A4 invoice, so the same bill never announces
   // itself as two different documents depending on the format chosen.
-  const title = gstOn ? "TAX INVOICE" : isSale ? "INVOICE / BILL OF SUPPLY" : "PURCHASE BILL";
+  // "Tax Invoice" is kept when GST applies (required wording); the plain-sale
+  // label is dropped since the logo already carries the company name.
+  const title = gstOn ? "TAX INVOICE" : isSale ? "" : "PURCHASE BILL";
 
   // Same arithmetic as PrintableInvoice, so the two formats can never print
   // different numbers for the same bill.
@@ -268,11 +270,12 @@ export function PrintableEstimate({
                   padding: "4px 6px 5px",
                 }}
               >
-                <img src="/logo.png" alt="" style={{ height: 32, marginBottom: 2 }} />
-                <div style={{ fontSize: 10, fontWeight: 600 }}>{title}</div>
-                <div style={{ fontSize: 20, fontWeight: 800, marginTop: 2 }}>
-                  {company.name || "Your Company"}
-                </div>
+                <img
+                  src="/logo.png"
+                  alt={company.name || "Your Company"}
+                  style={{ display: "block", margin: "0 auto 3px", height: 32 }}
+                />
+                {title && <div style={{ fontSize: 10, fontWeight: 600 }}>{title}</div>}
                 {company.address && <div style={{ fontSize: 10 }}>{company.address}</div>}
                 {(company.phone || company.email) && (
                   <div style={{ fontSize: 10 }}>

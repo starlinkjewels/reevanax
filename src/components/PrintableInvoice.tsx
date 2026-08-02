@@ -86,7 +86,10 @@ export function PrintableInvoice({
 }: Props) {
   const gstOn = inv.gstEnabled !== false;
   const isSale = mode === "sale";
-  const title = gstOn ? "TAX INVOICE" : isSale ? "INVOICE / BILL OF SUPPLY" : "PURCHASE BILL";
+  // "Tax Invoice" is kept when GST applies — required wording for a GST
+  // document. The plain-sale label is dropped instead of shown alongside the
+  // logo, which already carries the company name (see header below).
+  const title = gstOn ? "TAX INVOICE" : isSale ? "" : "PURCHASE BILL";
 
   // Aggregate GST by rate for summary
   const gstBuckets: Record<string, { taxable: number; tax: number }> = {};
@@ -141,11 +144,12 @@ export function PrintableInvoice({
           marginBottom: s(8),
         }}
       >
-        <img src="/logo.png" alt="" style={{ height: s(32), marginBottom: s(2) }} />
-        <div style={{ fontSize: s(10), fontWeight: 600 }}>{title}</div>
-        <div style={{ fontSize: s(20), fontWeight: 800, marginTop: s(2) }}>
-          {company.name || "Your Company"}
-        </div>
+        <img
+          src="/logo.png"
+          alt={company.name || "Your Company"}
+          style={{ display: "block", margin: `0 auto ${s(4)}px`, height: s(32) }}
+        />
+        {title && <div style={{ fontSize: s(10), fontWeight: 600 }}>{title}</div>}
         {company.address && <div style={{ fontSize: s(11) }}>{company.address}</div>}
         <div style={{ fontSize: s(11) }}>
           {company.phone && <>Phone: {company.phone}</>}

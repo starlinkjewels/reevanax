@@ -255,6 +255,27 @@ export interface Return {
   createdAt: string;
 }
 
+export type AppointmentStatus = "booked" | "completed" | "cancelled";
+
+/** A single-resource booking (one chair/room — see the conflict check in
+ * appointments.tsx) for a party at an exact date+time. */
+export interface Appointment {
+  id: ID;
+  partyId: ID;
+  partyName: string;
+  /** Snapshot of the party's phone at booking time (same convention as
+   * Invoice.partyPhone) — used to send the WhatsApp reminder. */
+  partyPhone?: string;
+  date: string;
+  time: string;
+  notes?: string;
+  status: AppointmentStatus;
+  /** Last time staff sent a manual reminder — shown as "Reminded Xh ago" so
+   * nobody re-sends the same client repeatedly the same day. */
+  reminderSentAt?: string;
+  createdAt: string;
+}
+
 export type PrintFormat = "a4" | "a4-2up" | "thermal80" | "thermal58";
 
 export interface Company {
@@ -299,7 +320,13 @@ export interface Company {
  * their own permissions. "reports" has no collection of its own (Reports/
  * Daybook/GST aggregate reads across the other modules, already protected
  * by their own rules) — it only gates the aggregated-view pages themselves. */
-export type ModuleKey = "masterData" | "sales" | "purchaseExpenses" | "cashBank" | "reports";
+export type ModuleKey =
+  | "masterData"
+  | "sales"
+  | "purchaseExpenses"
+  | "cashBank"
+  | "reports"
+  | "appointments";
 
 export interface ModulePermission {
   view: boolean;

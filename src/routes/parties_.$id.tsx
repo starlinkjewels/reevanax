@@ -8,16 +8,17 @@ import {
   PurchaseReturnRepo,
   PaymentRepo,
   CompanyRepo,
+  AppointmentRepo,
 } from "@/repositories";
 import { buildPartyStatement, type PartyStatementRow } from "@/lib/ledger";
-import { fmtMoney, fmtDate } from "@/lib/format";
+import { fmtMoney, fmtDate, fmtTime, fmtSince } from "@/lib/format";
 import { printOrEscapeStandalone } from "@/lib/print";
 import { useAutoPrintFromUrl } from "@/hooks/useAutoPrintFromUrl";
 import { useRepoData } from "@/hooks/useRepoData";
 import { downloadXlsx } from "@/lib/xlsx";
 import { downloadElementAsPdf } from "@/lib/pdf";
 import { useShareablePdf } from "@/hooks/useShareablePdf";
-import { sendElementViaWhatsApp } from "@/lib/whatsappSend";
+import { sendElementViaWhatsApp, sendTextViaWhatsApp } from "@/lib/whatsappSend";
 import { partyStatementSheet } from "@/lib/partySheet";
 import { PartyDialog } from "./parties";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -37,6 +38,7 @@ import {
   Rows3,
   MessageCircle,
   Calendar,
+  CalendarClock,
   X,
   Loader2,
   type LucideIcon,
@@ -153,6 +155,39 @@ function PartyStatementPage() {
       };
     });
   }, [rows]);
+
+  // This party's still-pending (booked) appointments, soonest first — the
+  // client-wise view of the same reminder feature the Appointments page
+  // shows centrally, so staff sees it right where they're already looking at
+  // this client without switching pages.
+  const upcomingAppointments = useMemo(() => {
+    if (!party) return [];
+    return AppointmentRepo.all()
+      .filter((a) => a.partyId === party.id && a.status === "booked")
+      .sort((a, b) => (a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date)));
+  }, [party, _repoV]);
+
+  const [remindingId, setRemindingId] = useState<string | null>(null);
+  const sendAppointmentReminder = async (a: { id: string; date: string; time: string }) => {
+    if (!party) return;
+    if (!party.phone?.trim()) {
+      toast.error("This party has no phone number saved — add one first.");
+      return;
+    }
+    setRemindingId(a.id);
+    try {
+      await sendTextViaWhatsApp({
+        phone: party.phone,
+        message: `Hi ${party.name}, this is a reminder for your appointment on ${fmtDate(a.date)} at ${fmtTime(a.time)}.`,
+      });
+      AppointmentRepo.update(a.id, { reminderSentAt: new Date().toISOString() });
+      toast.success(`Reminder sent to ${party.name}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send reminder");
+    } finally {
+      setRemindingId(null);
+    }
+  };
 
   const openRow = (e: LedgerRow) => {
     if (!e.docId || !e.docKind) return;
@@ -412,6 +447,49 @@ function PartyStatementPage() {
             tone={balance > 0 ? "rose" : balance < 0 ? "amber" : "emerald"}
           />
         </div>
+
+        {/* Upcoming Appointments — client-wise pending-reminder view;
+            the Appointments page shows the same data centrally. */}
+        {upcomingAppointments.length > 0 && (
+          <div className="rounded-lg border border-gray-100 bg-white px-3.5 py-2.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5" /> Upcoming Appointments
+              </p>
+              <button
+                onClick={() =>
+                  navigate({ to: "/appointments", search: { bookFor: party.id } })
+                }
+                className="text-[11px] font-medium text-primary hover:underline"
+              >
+                Book Appointment
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              {upcomingAppointments.slice(0, 3).map((a) => (
+                <div key={a.id} className="flex items-center justify-between gap-2 text-[12px]">
+                  <span className="text-gray-700">
+                    {fmtDate(a.date)} · {fmtTime(a.time)}
+                    {a.notes && <span className="text-gray-400"> — {a.notes}</span>}
+                  </span>
+                  <button
+                    onClick={() => sendAppointmentReminder(a)}
+                    disabled={remindingId === a.id}
+                    className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 disabled:opacity-50 shrink-0"
+                    title={party.phone ? "Send WhatsApp reminder" : "No phone number saved"}
+                  >
+                    {remindingId === a.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <MessageCircle className="h-3 w-3" />
+                    )}
+                    {a.reminderSentAt ? fmtSince(a.reminderSentAt) : "Remind"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Statement (also the printable area) */}

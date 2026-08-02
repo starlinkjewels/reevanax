@@ -12,6 +12,7 @@ import { Plus, UserCog, ShieldCheck, Trash2 } from "lucide-react";
 
 const MODULES: { key: ModuleKey; label: string }[] = [
   { key: "masterData", label: "Master Data" },
+  { key: "appointments", label: "Appointments" },
   { key: "sales", label: "Sales" },
   { key: "purchaseExpenses", label: "Purchase & Expenses" },
   { key: "cashBank", label: "Cash & Bank" },
