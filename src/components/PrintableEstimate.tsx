@@ -268,6 +268,7 @@ export function PrintableEstimate({
                   padding: "4px 6px 5px",
                 }}
               >
+                <img src="/logo.png" alt="" style={{ height: 32, marginBottom: 2 }} />
                 <div style={{ fontSize: 10, fontWeight: 600 }}>{title}</div>
                 <div style={{ fontSize: 20, fontWeight: 800, marginTop: 2 }}>
                   {company.name || "Your Company"}

@@ -4,8 +4,8 @@
   "description": "Keyboard-first desktop billing, inventory, and accounting software.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fafaf8",
-  "theme_color": "#0f172a",
+  "background_color": "#fcf9f7",
+  "theme_color": "#733d18",
   "icons": [
     {
       "src": "/favicon.svg",

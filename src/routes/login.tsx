@@ -5,7 +5,6 @@ import { auth } from "@/lib/firebase";
 import { APP_VERSION } from "@/lib/version";
 import { toast } from "sonner";
 import {
-  Sparkles,
   Mail,
   Lock,
   Eye,
@@ -89,14 +88,8 @@ export function LoginPage() {
     <div className="min-h-screen w-full flex bg-background">
       {/* Brand panel */}
       <div className="hidden lg:flex w-[45%] bg-gradient-brand text-brand-foreground flex-col justify-between p-10 xl:p-14">
-        <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/25">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div className="leading-tight">
-            <p className="font-bold tracking-tight text-[20px]">REEVANA X</p>
-            <p className="text-[11px] uppercase tracking-[0.2em] opacity-80">Billing · Inventory</p>
-          </div>
+        <div className="inline-flex rounded-xl bg-white/95 px-5 py-3.5 shadow-elevated self-start">
+          <img src="/logo.png" alt="ReevanaX" className="h-11 w-auto" />
         </div>
 
         <div className="max-w-md">
@@ -138,16 +131,8 @@ export function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-[400px]">
           {/* Mobile brand header */}
-          <div className="lg:hidden flex items-center gap-2.5 mb-8 justify-center">
-            <div className="h-10 w-10 rounded-lg bg-gradient-brand text-brand-foreground flex items-center justify-center">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div className="leading-tight">
-              <p className="font-bold tracking-tight text-[18px]">REEVANA X</p>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Billing · Inventory
-              </p>
-            </div>
+          <div className="lg:hidden flex justify-center mb-8">
+            <img src="/logo.png" alt="ReevanaX" className="h-11 w-auto" />
           </div>
 
           <h2 className="text-[24px] font-bold tracking-tight">Welcome back</h2>

@@ -141,6 +141,7 @@ export function PrintableInvoice({
           marginBottom: s(8),
         }}
       >
+        <img src="/logo.png" alt="" style={{ height: s(32), marginBottom: s(2) }} />
         <div style={{ fontSize: s(10), fontWeight: 600 }}>{title}</div>
         <div style={{ fontSize: s(20), fontWeight: 800, marginTop: s(2) }}>
           {company.name || "Your Company"}

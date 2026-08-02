@@ -14,7 +14,6 @@ import {
   FileText,
   Settings,
   Boxes,
-  Sparkles,
   ChevronsLeft,
   ChevronsRight,
   CornerDownLeft,
@@ -172,19 +171,11 @@ export function Sidebar() {
           className="bg-sidebar border-b border-sidebar-border shrink-0"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="h-14 flex items-center gap-2.5 px-3">
-            <div className="h-8 w-8 rounded-md bg-primary-soft text-primary flex items-center justify-center ring-1 ring-primary/10 shrink-0">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            {!collapsed && (
-              <div className="flex flex-col leading-tight overflow-hidden">
-                <span className="font-bold tracking-tight text-[15px] text-sidebar-foreground">
-                  REEVANA X
-                </span>
-                <span className="text-[10px] uppercase tracking-widest text-sidebar-muted">
-                  Billing · Inventory
-                </span>
-              </div>
+          <div className="h-14 flex items-center px-3">
+            {collapsed ? (
+              <img src="/logo-mark.png" alt="ReevanaX" className="h-8 w-8 object-contain shrink-0" />
+            ) : (
+              <img src="/logo.png" alt="ReevanaX" className="h-8 w-auto object-contain" />
             )}
           </div>
         </div>

@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { Sparkles, Loader2, AlertCircle, ShieldAlert } from "lucide-react";
+import { Loader2, AlertCircle, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -180,7 +180,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "REEVANA X" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { name: "theme-color", content: "#0f172a" },
+      { name: "theme-color", content: "#733d18" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -393,15 +393,10 @@ function AccessRestricted() {
 function SplashScreen() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-      <div className="h-14 w-14 rounded-2xl bg-gradient-brand text-brand-foreground flex items-center justify-center shadow-elevated">
-        <Sparkles className="h-6 w-6" />
-      </div>
-      <div className="text-center">
-        <p className="font-bold tracking-tight text-[18px]">REEVANA X</p>
-        <p className="text-[12px] text-muted-foreground flex items-center gap-1.5 justify-center mt-1">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading your workspace…
-        </p>
-      </div>
+      <img src="/logo.png" alt="ReevanaX" className="h-12 w-auto" />
+      <p className="text-[12px] text-muted-foreground flex items-center gap-1.5 justify-center">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading your workspace…
+      </p>
     </div>
   );
 }
