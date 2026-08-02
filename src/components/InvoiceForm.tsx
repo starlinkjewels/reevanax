@@ -221,19 +221,6 @@ export function InvoiceForm({ mode, existing }: Props) {
     return { referrerName: referrer.name, commission, disabled: false };
   }, [isSale, company.referralEnabled, company.referralPercent, company.referralMaxPerBill, inv.partyId, inv.total]);
 
-  // How much of THIS party's wallet this bill can draw on. Redemption stays
-  // spendable even if the program is currently off (that only gates NEW
-  // accrual) — it's their own already-earned balance. Adds back what this
-  // exact bill previously redeemed (on edit) since the party's live balance
-  // already reflects that past deduction — otherwise re-opening an edited
-  // bill would show a shrinking "available" figure across repeated saves.
-  const cashbackAvailable = useMemo(() => {
-    if (!isSale || !inv.partyId) return 0;
-    const liveBalance = PartyRepo.get(inv.partyId)?.referralWalletBalance ?? 0;
-    const ownPriorRedemption = existing?.partyId === inv.partyId ? (existing?.redeemedCashback ?? 0) : 0;
-    return r2(liveBalance + ownPriorRedemption);
-  }, [isSale, inv.partyId, existing]);
-
   const partySuggests = useMemo(() => {
     const q = partyQ.trim().toLowerCase();
     const pq = phoneQ.trim();
@@ -252,6 +239,19 @@ export function InvoiceForm({ mode, existing }: Props) {
   }, []);
 
   const r2 = (n: number) => Math.round(n * 100) / 100;
+
+  // How much of THIS party's wallet this bill can draw on. Redemption stays
+  // spendable even if the program is currently off (that only gates NEW
+  // accrual) — it's their own already-earned balance. Adds back what this
+  // exact bill previously redeemed (on edit) since the party's live balance
+  // already reflects that past deduction — otherwise re-opening an edited
+  // bill would show a shrinking "available" figure across repeated saves.
+  const cashbackAvailable = useMemo(() => {
+    if (!isSale || !inv.partyId) return 0;
+    const liveBalance = PartyRepo.get(inv.partyId)?.referralWalletBalance ?? 0;
+    const ownPriorRedemption = existing?.partyId === inv.partyId ? (existing?.redeemedCashback ?? 0) : 0;
+    return r2(liveBalance + ownPriorRedemption);
+  }, [isSale, inv.partyId, existing]);
 
   const roundEnabled = company.enableRoundOff !== false;
 
