@@ -553,7 +553,7 @@ export function PrintableEstimate({
             When you refer a friend, you get {company.referralPercent ?? 10}% and your friend gets{" "}
             {company.referralPercent ?? 10}% cashback on their next service.
           </div>
-          <div>Disc: Discount, CB: Cashback</div>
+          {/* <div>Disc: Discount, CB: Cashback</div> */}
         </div>
       )}
     </div>

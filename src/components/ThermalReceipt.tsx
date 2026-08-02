@@ -139,12 +139,7 @@ export function ThermalReceipt({
       {row("Mode", fmtMode(inv.paymentMode))}
 
       <div style={dashed} />
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontWeight: 700 }}>Thank you! Visit again 🙏</div>
-        <div style={{ fontSize: width === 80 ? 10 : 9 }}>
-          Goods once sold will not be taken back
-        </div>
-      </div>
+
 
       {/* Cashback footer — customer-facing, only when the referral program
           is actually running (see Settings). The party's live balance
@@ -166,10 +161,16 @@ export function ThermalReceipt({
               Refer a friend: you get {company.referralPercent ?? 10}% and your friend gets{" "}
               {company.referralPercent ?? 10}% cashback on their next service.
             </div>
-            <div>Disc: Discount, CB: Cashback</div>
+            {/* <div>Disc: Discount, CB: Cashback</div> */}
           </div>
         </>
       )}
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontWeight: 700 }}>Thank you! Visit again 🙏</div>
+        <div style={{ fontSize: width === 80 ? 10 : 9 }}>
+          Goods once sold will not be taken back
+        </div>
+      </div>
     </div>
   );
 }
