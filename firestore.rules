@@ -52,9 +52,13 @@ service cloud.firestore {
     }
 
     // ---- Master Data: Parties, Items, Inventory ----
+    // Referral wallet balances (`referralWalletBalance`) are written as a side
+    // effect of completing a sale for a referred party — same cross-module
+    // reasoning as items/banks below, so a Sales-only user's bill save can
+    // still finish that write inside the same atomic batch.
     match /parties/{id} {
       allow read: if hasPerm('masterData', 'view');
-      allow create, update: if hasPerm('masterData', 'edit');
+      allow create, update: if hasPerm('masterData', 'edit') || hasPerm('sales', 'edit');
       allow delete: if hasPerm('masterData', 'delete');
     }
     match /stock-adjustments/{id} {
@@ -83,6 +87,13 @@ service cloud.firestore {
       allow delete: if hasPerm('sales', 'delete');
     }
     match /sale-returns/{id} {
+      allow read: if hasPerm('sales', 'view');
+      allow create, update: if hasPerm('sales', 'edit');
+      allow delete: if hasPerm('sales', 'delete');
+    }
+    // Referral commission audit trail — entirely sales-driven (see
+    // ReferralLedgerEntry), so it's gated the same as sale-returns.
+    match /referral-ledger/{id} {
       allow read: if hasPerm('sales', 'view');
       allow create, update: if hasPerm('sales', 'edit');
       allow delete: if hasPerm('sales', 'delete');
